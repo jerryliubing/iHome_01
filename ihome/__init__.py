@@ -7,6 +7,9 @@ from flask_session import Session
 import redis
 import logging
 from logging.handlers import RotatingFileHandler
+from ihome.utils.commons import ReConverter
+
+
 import pymysql
 pymysql.install_as_MySQLdb()
 
@@ -35,9 +38,6 @@ file_log_handler.setFormatter(formatter)
 logging.getLogger().addHandler(file_log_handler)
 
 
-
-
-
 def create_app(config_name):
     # 创建flask应用对象
     app = Flask(__name__)
@@ -54,6 +54,12 @@ def create_app(config_name):
     Session(app)
     # 为flask提供csrf保护
     CSRFProtect(app)
+
+    # 注册正则转换器
+    app.url_map.converters["re"] = ReConverter
+
+    from ihome import web_html
+    app.register_blueprint(web_html.html)
 
     # 注册蓝图
     from ihome import api_1_0  # 延迟导入，避免循环导包
