@@ -19,6 +19,10 @@ function generateUUID() {
 }
 
 function generateImageCode() {
+    imageCodeId = generateUUID();
+    var url = "/api/v1.0/image_codes/" + imageCodeId;
+    $(".image-code img").attr("src", url);
+
 }
 
 function sendSMSCode() {
@@ -37,30 +41,37 @@ function sendSMSCode() {
         $(".phonecode-a").attr("onclick", "sendSMSCode();");
         return;
     }
-    $.get("/api/smscode", {mobile:mobile, code:imageCode, codeId:imageCodeId}, 
-        function(data){
-            if (0 != data.errno) {
-                $("#image-code-err span").html(data.errmsg); 
-                $("#image-code-err").show();
-                if (2 == data.errno || 3 == data.errno) {
-                    generateImageCode();
+
+    var req_data = {
+        image_code: imageCode, // 图片验证码
+        image_code_id: imageCodeId // 图片验证码编号。（全局变量）
+    };
+
+    $.get("/api/v1.0/sms_codes/"+mobile, req_data, function (resp) {
+        //resp是后端返回的相应值（json字符串）
+        //ajax把json字符串转换为js对象，resp就是转换后的对象
+        if (resp.errno == "0"){
+            //表示发送短信成功
+            var num = 60;
+            // 设置定时器
+            var timer = setInterval(function (){
+                if(num > 1){
+                    $(".phonecode-a").html(num + "秒");
+                    num -= 1;
+                }else {
+                    $(".phonecode-a").html("获取验证码");
+                    $(".phonecode-a").attr("onclick", "sendSMSCode();");
+                    clearTimeout(timer);
                 }
-                $(".phonecode-a").attr("onclick", "sendSMSCode();");
-            }   
-            else {
-                var $time = $(".phonecode-a");
-                var duration = 60;
-                var intervalid = setInterval(function(){
-                    $time.html(duration + "秒"); 
-                    if(duration === 1){
-                        clearInterval(intervalid);
-                        $time.html('获取验证码'); 
-                        $(".phonecode-a").attr("onclick", "sendSMSCode();");
-                    }
-                    duration = duration - 1;
-                }, 1000, 60); 
-            }
-    }, 'json'); 
+            }, 1000,60)
+        }else {
+            alert(resp.errmsg);
+            $(".phonecode-a").attr("onclick", "sendSMSCode();");
+        }
+
+    });
+
+
 }
 
 $(document).ready(function() {
